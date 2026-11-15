@@ -210,7 +210,10 @@ function onBatch(state: BarsState, batch: Batch): OrderInput[] {
       return [];
     }
     stopPrice = (setupLow * (10000 - STOP_PAD_BPS)) / 10000;
-    const stopDistBps = ((close - stopPrice) / close) * 10000;
+    // Integer-bps stop distance, matching the exact-integer simulator:
+    // truncating to whole bps (not float64) keeps live sizing identical
+    // to the sim — the $0.045 dev gap was this rounding difference.
+    const stopDistBps = Math.floor(((close - stopPrice) / close) * 10000);
     if (stopDistBps <= 0) return [];
     const frac = Math.min(1, RISK_BPS / stopDistBps);
     const notional = BigInt(Math.floor(Number(state.cash) * frac));
